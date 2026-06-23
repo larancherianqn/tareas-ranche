@@ -5,9 +5,7 @@
     <p class="eyebrow"><%= isAdmin ? 'Todas las tareas' : 'Mis tareas' %></p>
     <h1>Tareas</h1>
   </div>
-  <% if (isAdmin) { %>
-    <a class="btn" href="/tasks/new">+ Nueva tarea</a>
-  <% } %>
+  <a class="btn" href="/tasks/new">+ Nueva tarea</a>
 </div>
 
 <div class="counters">
@@ -58,7 +56,7 @@
       <% if (isAdmin) { %>
         Creá la primera con el botón “Nueva tarea”.
       <% } else { %>
-        Cuando el administrador te asigne algo, va a aparecer acá.
+        Creá una con el botón “Nueva tarea”, o esperá a que el administrador te asigne algo.
       <% } %>
     </p>
   </div>

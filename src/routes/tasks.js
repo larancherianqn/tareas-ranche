@@ -25,14 +25,14 @@ router.get('/', async (req, res, next) => {
     const params = [];
     const where = [];
 
-    // Alcance: el admin ve todo; el empleado ve lo suyo + lo de su sector.
+    // Alcance: el admin ve todo; el empleado ve lo suyo, lo de su sector y lo que creó.
     if (!isAdmin) {
       if (req.user.sector_id) {
         params.push(req.user.id, req.user.sector_id);
-        where.push(`(t.assigned_to = $${params.length - 1} OR t.sector_id = $${params.length})`);
+        where.push(`(t.assigned_to = $${params.length - 1} OR t.created_by = $${params.length - 1} OR t.sector_id = $${params.length})`);
       } else {
         params.push(req.user.id);
-        where.push(`t.assigned_to = $${params.length}`);
+        where.push(`(t.assigned_to = $${params.length} OR t.created_by = $${params.length})`);
       }
     }
     if (filter && VALID_STATUSES.includes(filter)) {
@@ -70,10 +70,10 @@ router.get('/', async (req, res, next) => {
     if (!isAdmin) {
       if (req.user.sector_id) {
         scopeParams.push(req.user.id, req.user.sector_id);
-        scopeWhere = 'WHERE (assigned_to = $1 OR sector_id = $2)';
+        scopeWhere = 'WHERE (assigned_to = $1 OR created_by = $1 OR sector_id = $2)';
       } else {
         scopeParams.push(req.user.id);
-        scopeWhere = 'WHERE assigned_to = $1';
+        scopeWhere = 'WHERE (assigned_to = $1 OR created_by = $1)';
       }
     }
     const { rows: counts } = await db.query(
@@ -102,7 +102,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // Formulario de nueva tarea (solo admin).
-router.get('/tasks/new', ensureAdmin, async (req, res, next) => {
+router.get('/tasks/new', ensureAuth, async (req, res, next) => {
   try {
     const { rows: users } = await db.query(
       `SELECT id, name, email FROM users ORDER BY name ASC`
@@ -115,7 +115,7 @@ router.get('/tasks/new', ensureAdmin, async (req, res, next) => {
 });
 
 // Crear tarea (solo admin).
-router.post('/tasks', ensureAdmin, uploadFiles, async (req, res, next) => {
+router.post('/tasks', ensureAuth, uploadFiles, async (req, res, next) => {
   try {
     const { title, description, assigned_to, due_date, status, category, sector_id } = req.body;
     if (!title || !title.trim()) {
@@ -177,7 +177,7 @@ router.get('/tasks/:id', async (req, res, next) => {
     }
 
     // Un empleado puede ver la tarea si es suya o es de su sector.
-    const ownsOrSector = task.assigned_to === req.user.id
+    const ownsOrSector = task.assigned_to === req.user.id || task.created_by === req.user.id
       || (task.sector_id && task.sector_id === req.user.sector_id);
     if (req.user.role !== 'admin' && !ownsOrSector) {
       res.status(403);
@@ -217,7 +217,7 @@ router.post('/tasks/:id/update', async (req, res, next) => {
       res.status(404);
       return res.render('error', { title: 'No encontrada', message: 'Esa tarea no existe.' });
     }
-    const ownsOrSector = task.assigned_to === req.user.id
+    const ownsOrSector = task.assigned_to === req.user.id || task.created_by === req.user.id
       || (task.sector_id && task.sector_id === req.user.sector_id);
     if (req.user.role !== 'admin' && !ownsOrSector) {
       res.status(403);

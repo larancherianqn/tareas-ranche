@@ -1,0 +1,125 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Administración</p>
+    <h1>Equipo</h1>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Autorizar a alguien</h2>
+  <form method="POST" action="/admin/users" class="form-grid">
+    <div class="row-2">
+      <div class="field">
+        <label for="email">Correo de Gmail</label>
+        <input type="text" id="email" name="email" placeholder="persona@gmail.com" required />
+      </div>
+      <div class="field">
+        <label for="name">Nombre (opcional)</label>
+        <input type="text" id="name" name="name" placeholder="Cómo lo identificás" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">Autorizar</button>
+    </div>
+  </form>
+  <p class="muted" style="margin:14px 0 0; font-size:14px;">
+    La persona ingresa sola con su cuenta de Google. Aparece como “Ingresó” una vez que entra por primera vez, y recién ahí podés asignarle tareas.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Administradores</h2>
+  <% admins.forEach(function (a) { %>
+    <p style="margin:0 0 6px;"><strong><%= a.name || a.email %></strong> <span class="muted">· <%= a.email %></span></p>
+  <% }) %>
+  <p class="muted" style="font-size:13px; margin-top:8px;">El administrador se define con la variable <code>ADMIN_EMAIL</code> en la configuración.</p>
+</div>
+
+<div class="card">
+  <h2>Sectores</h2>
+  <form method="POST" action="/admin/sectors" class="form-grid" style="margin-bottom:16px;">
+    <div class="row-2">
+      <div class="field">
+        <label for="sname">Nuevo sector</label>
+        <input type="text" id="sname" name="name" placeholder="Ej: Mantenimiento, Cocina, Recepción" required />
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn">Crear sector</button>
+      </div>
+    </div>
+  </form>
+
+  <% if (sectors.length === 0) { %>
+    <p class="muted">Todavía no creaste sectores.</p>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th>Sector</th><th>Integrantes</th><th></th></tr></thead>
+      <tbody>
+        <% sectors.forEach(function (s) { %>
+          <tr>
+            <td><strong><%= s.name %></strong></td>
+            <td><%= s.members %></td>
+            <td style="text-align:right;">
+              <form method="POST" action="/admin/sectors/<%= s.id %>?_method=DELETE" class="inline"
+                    onsubmit="return confirm('¿Eliminar el sector <%= s.name %>? Las tareas y personas quedan sin sector.');">
+                <button type="submit" class="btn-ghost btn-sm">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Correos autorizados</h2>
+  <% if (authorized.length === 0) { %>
+    <p class="muted">Todavía no autorizaste a nadie.</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr><th>Correo</th><th>Nombre</th><th>Estado</th><th>Sector</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% authorized.forEach(function (a) { %>
+          <tr>
+            <td><%= a.email %></td>
+            <td><%= a.user_name || a.name || '—' %></td>
+            <td>
+              <% if (a.user_id) { %>
+                <span class="state-in">● Ingresó</span>
+              <% } else { %>
+                <span class="state-out">○ Pendiente de ingresar</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (a.user_id) { %>
+                <form method="POST" action="/admin/users/<%= a.user_id %>/sector" class="inline">
+                  <select name="sector_id" onchange="this.form.submit()">
+                    <option value="">Sin sector</option>
+                    <% sectors.forEach(function (s) { %>
+                      <option value="<%= s.id %>" <%= a.sector_id === s.id ? 'selected' : '' %>><%= s.name %></option>
+                    <% }) %>
+                  </select>
+                </form>
+              <% } else { %>
+                <span class="muted">—</span>
+              <% } %>
+            </td>
+            <td style="text-align:right;">
+              <form method="POST" action="/admin/users/<%= a.id %>?_method=DELETE" class="inline"
+                    onsubmit="return confirm('¿Quitar la autorización de <%= a.email %>?');">
+                <button type="submit" class="btn-ghost btn-sm">Quitar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

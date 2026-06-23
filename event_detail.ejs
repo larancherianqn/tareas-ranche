@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %> · Tareas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <% if (currentUser) { %>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"></span>
+      Tareas
+    </a>
+    <nav class="nav">
+      <a href="/" class="<%= path === '/' ? 'is-active' : '' %>">Tareas</a>
+      <a href="/calendar" class="<%= (path.indexOf('/calendar') === 0 || path.indexOf('/events') === 0) ? 'is-active' : '' %>">Calendario</a>
+      <a href="/buzon" class="<%= (path.indexOf('/buzon') === 0 || path.indexOf('/avisos') === 0 || path.indexOf('/solicitudes') === 0) ? 'is-active' : '' %>">Buzón</a>
+      <% if (currentUser.role === 'admin') { %>
+        <a href="/admin/users" class="<%= path.indexOf('/admin') === 0 ? 'is-active' : '' %>">Equipo</a>
+      <% } %>
+    </nav>
+    <div class="user-box">
+      <span class="user-name">
+        <%= currentUser.name %>
+        <% if (currentUser.role === 'admin') { %><span class="tag-admin">Admin</span><% } %>
+      </span>
+      <form action="/logout" method="POST" class="inline">
+        <button type="submit" class="btn-ghost btn-sm">Salir</button>
+      </form>
+    </div>
+  </header>
+  <% } %>
+  <main class="container">
+    <% if (typeof flash !== 'undefined' && flash) { %>
+      <div class="flash flash-<%= flash.type %>"><%= flash.text %></div>
+    <% } %>

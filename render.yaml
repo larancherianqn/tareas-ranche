@@ -1,0 +1,71 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Calendario del equipo</p>
+    <h1 style="text-transform:capitalize;"><%= monthLabel %></h1>
+  </div>
+  <% if (isAdmin) { %>
+    <a class="btn" href="/events/new">+ Nuevo evento</a>
+  <% } %>
+</div>
+
+<% if (isAdmin && !calendarConnected) { %>
+  <div class="flash flash-error" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <span>Conectá tu cuenta de Google para enviar invitaciones por mail (Calendar) y guardar los archivos del Buzón (Drive).</span>
+    <a class="btn btn-sm" href="/admin/calendar/connect">Conectar Google</a>
+  </div>
+<% } %>
+
+<div class="cal-nav">
+  <a class="btn-ghost btn-sm" href="/calendar?mes=<%= prevMes %>">← Mes anterior</a>
+  <a class="btn-ghost btn-sm" href="/calendar">Hoy</a>
+  <a class="btn-ghost btn-sm" href="/calendar?mes=<%= nextMes %>">Mes siguiente →</a>
+</div>
+
+<div class="calendar">
+  <div class="cal-head">
+    <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+  </div>
+  <div class="cal-grid">
+    <% weeks.forEach(function (week) { %>
+      <% week.forEach(function (cell) { %>
+        <div class="cal-cell <%= cell.inMonth ? '' : 'is-out' %> <%= cell.isToday ? 'is-today' : '' %>">
+          <div class="cal-daynum">
+            <% if (isAdmin) { %>
+              <a href="/events/new?fecha=<%= cell.key %>" title="Agregar evento"><%= cell.day %></a>
+            <% } else { %>
+              <%= cell.day %>
+            <% } %>
+          </div>
+          <% cell.events.forEach(function (e) { %>
+            <a class="cal-event <%= e.all_day ? 'is-allday' : '' %>" href="/events/<%= e.id %>" title="<%= e.title %>">
+              <% if (!e.all_day && e.start_time) { %><b><%= e.start_time %></b> <% } %><%= e.title %>
+            </a>
+          <% }) %>
+        </div>
+      <% }) %>
+    <% }) %>
+  </div>
+</div>
+
+<div class="card" style="margin-top:22px;">
+  <h2>Próximos eventos</h2>
+  <% if (upcoming.length === 0) { %>
+    <p class="muted">No hay eventos próximos este mes.</p>
+  <% } else { %>
+    <ul class="upcoming">
+      <% upcoming.forEach(function (e) { %>
+        <li>
+          <a href="/events/<%= e.id %>">
+            <span class="up-date"><%= h.formatDate(e.event_date) %></span>
+            <span class="up-title"><%= e.title %></span>
+            <span class="up-time"><%= h.eventTimeLabel(e) %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

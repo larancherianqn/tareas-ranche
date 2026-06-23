@@ -1,0 +1,51 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a class="back-link" href="/buzon">← Volver al buzón</a></p>
+    <h1>Nuevo aviso</h1>
+  </div>
+</div>
+
+<div class="card">
+  <form method="POST" action="/avisos" enctype="multipart/form-data" class="form-grid">
+    <div class="field">
+      <label for="title">Título</label>
+      <input type="text" id="title" name="title" required maxlength="200" placeholder="Ej: Cronograma de julio" />
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label for="kind">Tipo</label>
+        <select id="kind" name="kind">
+          <% h.ANNOUNCEMENT_KINDS.forEach(function (k) { %>
+            <option value="<%= k.value %>"><%= k.label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ref_date">Fecha relacionada (opcional)</label>
+        <input type="date" id="ref_date" name="ref_date" />
+        <p class="muted" style="font-size:12px; margin:6px 0 0;">Útil para "día no laborable".</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="body">Mensaje</label>
+      <textarea id="body" name="body" placeholder="Escribí el aviso (opcional)"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="files">Adjuntos</label>
+      <input type="file" id="files" name="files" multiple />
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">PDF, imágenes, Word, etc. Hasta 5 archivos, máximo 10 MB cada uno.</p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Publicar aviso</button>
+      <a class="btn-ghost" href="/buzon">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/foot') %>

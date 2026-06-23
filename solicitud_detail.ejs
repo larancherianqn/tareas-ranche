@@ -1,0 +1,50 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a class="back-link" href="/buzon">← Volver al buzón</a></p>
+    <h1>Nueva solicitud</h1>
+  </div>
+</div>
+
+<div class="card">
+  <form method="POST" action="/solicitudes" enctype="multipart/form-data" class="form-grid">
+    <div class="field">
+      <label for="kind">Tipo de solicitud</label>
+      <select id="kind" name="kind">
+        <% h.REQUEST_KINDS.forEach(function (k) { %>
+          <option value="<%= k.value %>"><%= k.label %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label for="start_date">Desde</label>
+        <input type="date" id="start_date" name="start_date" />
+      </div>
+      <div class="field">
+        <label for="end_date">Hasta</label>
+        <input type="date" id="end_date" name="end_date" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="reason">Motivo / detalle</label>
+      <textarea id="reason" name="reason" placeholder="Contanos brevemente el motivo (opcional)"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="files">Adjuntos</label>
+      <input type="file" id="files" name="files" multiple />
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">Por ejemplo, el certificado médico. Hasta 5 archivos, máximo 10 MB cada uno.</p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Enviar solicitud</button>
+      <a class="btn-ghost" href="/buzon">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/foot') %>

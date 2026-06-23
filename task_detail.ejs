@@ -1,0 +1,63 @@
+<%- include('partials/head') %>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow"><a class="back-link" href="/calendar">← Volver al calendario</a></p>
+    <h1><%= event.title %></h1>
+  </div>
+  <% if (isAdmin) { %>
+    <form method="POST" action="/events/<%= event.id %>?_method=DELETE" class="inline"
+          onsubmit="return confirm('¿Eliminar este evento? También se borra de Google Calendar y se avisa a los invitados.');">
+      <button type="submit" class="btn-danger btn-sm">Eliminar</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="card">
+  <dl class="meta-grid">
+    <div>
+      <dt>Fecha</dt>
+      <dd><%= h.formatDate(event.event_date) %></dd>
+    </div>
+    <div>
+      <dt>Horario</dt>
+      <dd><%= h.eventTimeLabel(event) %></dd>
+    </div>
+    <% if (event.location) { %>
+      <div>
+        <dt>Lugar</dt>
+        <dd><%= event.location %></dd>
+      </div>
+    <% } %>
+    <div>
+      <dt>Creado por</dt>
+      <dd><%= event.creator_name || '—' %></dd>
+    </div>
+  </dl>
+
+  <% if (event.description) { %>
+    <div style="margin-top:20px;">
+      <dt class="eyebrow" style="margin-bottom:6px;">Descripción</dt>
+      <p class="desc"><%= event.description %></p>
+    </div>
+  <% } %>
+
+  <% if (event.google_html_link) { %>
+    <p style="margin-top:18px;"><a class="btn-ghost btn-sm" href="<%= event.google_html_link %>" target="_blank" rel="noopener">Ver en Google Calendar →</a></p>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Invitados</h2>
+  <% if (attendees.length === 0) { %>
+    <p class="muted">Este evento no tiene invitados.</p>
+  <% } else { %>
+    <ul class="attendees">
+      <% attendees.forEach(function (a) { %>
+        <li><strong><%= a.name || a.email %></strong> <span class="muted">· <%= a.email %></span></li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

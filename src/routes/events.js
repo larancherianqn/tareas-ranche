@@ -38,27 +38,15 @@ router.get('/calendar', ensureAuth, async (req, res, next) => {
     const startKey = dateKey(gridStart);
     const endKey = dateKey(gridEnd);
 
-    let rows;
-    if (isAdmin) {
-      ({ rows } = await db.query(
-        `SELECT e.*, u.name AS creator_name
-           FROM events e
-           LEFT JOIN users u ON u.id = e.created_by
-          WHERE e.event_date >= $1 AND e.event_date < $2
-          ORDER BY e.event_date, e.all_day DESC, e.start_time NULLS FIRST`,
-        [startKey, endKey]
-      ));
-    } else {
-      ({ rows } = await db.query(
-        `SELECT e.*, u.name AS creator_name
-           FROM events e
-           JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = $3
-           LEFT JOIN users u ON u.id = e.created_by
-          WHERE e.event_date >= $1 AND e.event_date < $2
-          ORDER BY e.event_date, e.all_day DESC, e.start_time NULLS FIRST`,
-        [startKey, endKey, req.user.id]
-      ));
-    }
+    // Calendario compartido: todos ven todos los eventos del mes.
+    const { rows } = await db.query(
+      `SELECT e.*, u.name AS creator_name
+         FROM events e
+         LEFT JOIN users u ON u.id = e.created_by
+        WHERE e.event_date >= $1 AND e.event_date < $2
+        ORDER BY e.event_date, e.all_day DESC, e.start_time NULLS FIRST`,
+      [startKey, endKey]
+    );
 
     // Agrupamos eventos por día.
     const byDay = {};
@@ -95,6 +83,8 @@ router.get('/calendar', ensureAuth, async (req, res, next) => {
       .filter((e) => toInputDate(e.event_date) >= todayKey)
       .slice(0, 8);
 
+    const adminG = await gcal.getAdminWithDrive();
+
     res.render('calendar', {
       title: 'Calendario',
       weeks,
@@ -102,7 +92,7 @@ router.get('/calendar', ensureAuth, async (req, res, next) => {
       prevMes: `${prevMonth.getFullYear()}-${pad(prevMonth.getMonth() + 1)}`,
       nextMes: `${nextMonth.getFullYear()}-${pad(nextMonth.getMonth() + 1)}`,
       isAdmin,
-      calendarConnected: gcal.hasCalendar(req.user),
+      calendarConnected: !!adminG,
       upcoming,
     });
   } catch (err) {
@@ -111,17 +101,18 @@ router.get('/calendar', ensureAuth, async (req, res, next) => {
 });
 
 // ---------- Formulario de nuevo evento ----------
-router.get('/events/new', ensureAuth, ensureAdmin, async (req, res, next) => {
+router.get('/events/new', ensureAuth, async (req, res, next) => {
   try {
     const { rows: users } = await db.query(
       `SELECT id, name, email FROM users WHERE role <> 'admin' OR id <> $1 ORDER BY name ASC`,
       [req.user.id]
     );
+    const adminG = await gcal.getAdminWithDrive();
     res.render('event_form', {
       title: 'Nuevo evento',
       users,
       defaultDate: req.query.fecha || toInputDate(new Date()),
-      calendarConnected: gcal.hasCalendar(req.user),
+      calendarConnected: !!adminG,
     });
   } catch (err) {
     next(err);
@@ -129,11 +120,12 @@ router.get('/events/new', ensureAuth, ensureAdmin, async (req, res, next) => {
 });
 
 // ---------- Crear evento ----------
-router.post('/events', ensureAuth, ensureAdmin, async (req, res, next) => {
+router.post('/events', ensureAuth, async (req, res, next) => {
   const client = await db.pool.connect();
   try {
     const { title, description, location, event_date, start_time, end_time } = req.body;
     const allDay = req.body.all_day === 'on';
+    const allTeam = req.body.all_team === 'on';
     const attendeeIds = toArray(req.body.attendees).map((x) => parseInt(x, 10)).filter(Boolean);
 
     if (!title || !title.trim() || !event_date) {
@@ -159,27 +151,30 @@ router.post('/events', ensureAuth, ensureAdmin, async (req, res, next) => {
     );
     const event = ins.rows[0];
 
-    let attendeeEmails = [];
-    if (attendeeIds.length > 0) {
-      const { rows: att } = await client.query(
+    // Si "todo el equipo" está marcado, invita a todos los que ya ingresaron.
+    let attRows = [];
+    if (allTeam) {
+      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL`));
+    } else if (attendeeIds.length > 0) {
+      ({ rows: attRows } = await client.query(
         `SELECT id, email FROM users WHERE id = ANY($1::int[])`,
         [attendeeIds]
-      );
-      for (const a of att) {
-        await client.query(
-          `INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2)
-           ON CONFLICT DO NOTHING`,
-          [event.id, a.id]
-        );
-      }
-      attendeeEmails = att.map((a) => a.email);
+      ));
     }
+    for (const a of attRows) {
+      await client.query(
+        `INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [event.id, a.id]
+      );
+    }
+    const attendeeEmails = attRows.map((a) => a.email);
     await client.query('COMMIT');
 
-    // Sincronización con Google Calendar (si el admin lo conectó).
-    if (gcal.hasCalendar(req.user)) {
+    // Sincronización con Google Calendar usando la cuenta del admin conectado.
+    const adminG = await gcal.getAdminWithDrive();
+    if (adminG) {
       try {
-        const g = await gcal.createGoogleEvent(req.user, event, attendeeEmails);
+        const g = await gcal.createGoogleEvent(adminG, event, attendeeEmails);
         await db.query(
           `UPDATE events SET google_event_id = $1, google_html_link = $2 WHERE id = $3`,
           [g.id, g.htmlLink, event.id]
@@ -188,15 +183,133 @@ router.post('/events', ensureAuth, ensureAdmin, async (req, res, next) => {
       } catch (gErr) {
         console.error('Error al sincronizar con Google Calendar:', gErr.message);
         req.session.flash = {
-          type: 'error',
-          text: 'El evento se guardó, pero no se pudo enviar a Google Calendar. Probá reconectar tu calendario.',
+          type: 'ok',
+          text: 'Evento creado. (No se pudo sincronizar con Google Calendar en este momento.)',
         };
       }
     } else {
       req.session.flash = {
         type: 'ok',
-        text: 'Evento guardado. Conectá tu Google Calendar para enviar las invitaciones por mail.',
+        text: 'Evento creado. Para enviar invitaciones por mail, el administrador debe conectar Google Calendar.',
       };
+    }
+
+    res.redirect(`/events/${event.id}`);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
+// ---------- Formulario de edición de evento ----------
+router.get('/events/:id/edit', ensureAuth, ensureAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM events WHERE id = $1', [req.params.id]);
+    const event = rows[0];
+    if (!event) {
+      res.status(404);
+      return res.render('error', { title: 'No encontrado', message: 'Ese evento no existe.' });
+    }
+    const { rows: users } = await db.query(
+      `SELECT id, name, email FROM users WHERE role <> 'admin' OR id <> $1 ORDER BY name ASC`,
+      [req.user.id]
+    );
+    const { rows: att } = await db.query(
+      'SELECT user_id FROM event_attendees WHERE event_id = $1',
+      [event.id]
+    );
+    res.render('event_form', {
+      title: 'Editar evento',
+      event,
+      users,
+      attendeeIds: att.map((a) => a.user_id),
+      defaultDate: toInputDate(event.event_date),
+      calendarConnected: gcal.hasCalendar(req.user),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Guardar edición de evento ----------
+router.put('/events/:id', ensureAuth, ensureAdmin, async (req, res, next) => {
+  const client = await db.pool.connect();
+  try {
+    const { title, description, location, event_date, start_time, end_time } = req.body;
+    const allDay = req.body.all_day === 'on';
+    const allTeam = req.body.all_team === 'on';
+    const attendeeIds = toArray(req.body.attendees).map((x) => parseInt(x, 10)).filter(Boolean);
+
+    if (!title || !title.trim() || !event_date) {
+      req.session.flash = { type: 'error', text: 'El evento necesita título y fecha.' };
+      return res.redirect(`/events/${req.params.id}/edit`);
+    }
+
+    await client.query('BEGIN');
+    const upd = await client.query(
+      `UPDATE events
+          SET title = $1, description = $2, location = $3, event_date = $4,
+              start_time = $5, end_time = $6, all_day = $7
+        WHERE id = $8
+        RETURNING *`,
+      [
+        title.trim(),
+        description?.trim() || null,
+        location?.trim() || null,
+        event_date,
+        allDay ? null : (start_time || null),
+        allDay ? null : (end_time || null),
+        allDay,
+        req.params.id,
+      ]
+    );
+    const event = upd.rows[0];
+    if (!event) {
+      await client.query('ROLLBACK');
+      res.status(404);
+      return res.render('error', { title: 'No encontrado', message: 'Ese evento no existe.' });
+    }
+
+    await client.query('DELETE FROM event_attendees WHERE event_id = $1', [event.id]);
+    let attRows = [];
+    if (allTeam) {
+      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL`));
+    } else if (attendeeIds.length > 0) {
+      ({ rows: attRows } = await client.query(
+        `SELECT id, email FROM users WHERE id = ANY($1::int[])`,
+        [attendeeIds]
+      ));
+    }
+    for (const a of attRows) {
+      await client.query(
+        `INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [event.id, a.id]
+      );
+    }
+    const attendeeEmails = attRows.map((a) => a.email);
+    await client.query('COMMIT');
+
+    const adminG = await gcal.getAdminWithDrive();
+    if (adminG) {
+      try {
+        if (event.google_event_id) {
+          await gcal.updateGoogleEvent(adminG, event.google_event_id, event, attendeeEmails);
+        } else {
+          const g = await gcal.createGoogleEvent(adminG, event, attendeeEmails);
+          await db.query(
+            `UPDATE events SET google_event_id = $1, google_html_link = $2 WHERE id = $3`,
+            [g.id, g.htmlLink, event.id]
+          );
+        }
+        req.session.flash = { type: 'ok', text: 'Evento actualizado y sincronizado con Google Calendar.' };
+      } catch (gErr) {
+        console.error('Error al actualizar en Google Calendar:', gErr.message);
+        req.session.flash = { type: 'ok', text: 'Evento actualizado. (No se pudo sincronizar con Google Calendar.)' };
+      }
+    } else {
+      req.session.flash = { type: 'ok', text: 'Evento actualizado.' };
     }
 
     res.redirect(`/events/${event.id}`);
@@ -230,12 +343,6 @@ router.get('/events/:id', ensureAuth, async (req, res, next) => {
       [event.id]
     );
 
-    // El empleado solo ve el evento si está invitado.
-    if (req.user.role !== 'admin' && !attendees.some((a) => a.id === req.user.id)) {
-      res.status(403);
-      return res.render('error', { title: 'Sin permiso', message: 'No estás invitado a este evento.' });
-    }
-
     res.render('event_detail', {
       title: event.title,
       event,
@@ -254,9 +361,10 @@ router.delete('/events/:id', ensureAuth, ensureAdmin, async (req, res, next) => 
     const event = rows[0];
     if (!event) return res.redirect('/calendar');
 
-    if (event.google_event_id && gcal.hasCalendar(req.user)) {
+    const adminG = await gcal.getAdminWithDrive();
+    if (event.google_event_id && adminG) {
       try {
-        await gcal.deleteGoogleEvent(req.user, event.google_event_id);
+        await gcal.deleteGoogleEvent(adminG, event.google_event_id);
       } catch (gErr) {
         console.error('No se pudo borrar de Google Calendar:', gErr.message);
       }

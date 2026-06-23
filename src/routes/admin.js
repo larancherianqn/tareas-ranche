@@ -24,7 +24,9 @@ router.get('/admin/users', async (req, res, next) => {
       `SELECT s.*, (SELECT COUNT(*)::int FROM users u WHERE u.sector_id = s.id) AS members
          FROM sectors s ORDER BY s.name`
     );
-    res.render('admin_users', { title: 'Equipo', authorized, admins, sectors });
+    const { rows: announcementTypes } = await db.query('SELECT * FROM announcement_types ORDER BY name');
+    const { rows: requestTypes } = await db.query('SELECT * FROM request_types ORDER BY name');
+    res.render('admin_users', { title: 'Equipo', authorized, admins, sectors, announcementTypes, requestTypes });
   } catch (err) {
     next(err);
   }
@@ -107,6 +109,40 @@ router.delete('/admin/users/:id', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// Tipos de aviso.
+router.post('/admin/announcement-types', async (req, res, next) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (name) {
+      await db.query('INSERT INTO announcement_types (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [name]);
+    }
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+router.delete('/admin/announcement-types/:id', async (req, res, next) => {
+  try {
+    await db.query('DELETE FROM announcement_types WHERE id = $1', [req.params.id]);
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+
+// Tipos de solicitud.
+router.post('/admin/request-types', async (req, res, next) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (name) {
+      await db.query('INSERT INTO request_types (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [name]);
+    }
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+router.delete('/admin/request-types/:id', async (req, res, next) => {
+  try {
+    await db.query('DELETE FROM request_types WHERE id = $1', [req.params.id]);
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

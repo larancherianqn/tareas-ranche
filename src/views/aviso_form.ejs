@@ -18,8 +18,8 @@
       <div class="field">
         <label for="kind">Tipo</label>
         <select id="kind" name="kind">
-          <% h.ANNOUNCEMENT_KINDS.forEach(function (k) { %>
-            <option value="<%= k.value %>"><%= k.label %></option>
+          <% types.forEach(function (t) { %>
+            <option value="<%= t.name %>"><%= t.name %></option>
           <% }) %>
         </select>
       </div>

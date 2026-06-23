@@ -5,9 +5,7 @@
     <p class="eyebrow">Calendario del equipo</p>
     <h1 style="text-transform:capitalize;"><%= monthLabel %></h1>
   </div>
-  <% if (isAdmin) { %>
-    <a class="btn" href="/events/new">+ Nuevo evento</a>
-  <% } %>
+  <a class="btn" href="/events/new">+ Nuevo evento</a>
 </div>
 
 <% if (isAdmin && !calendarConnected) { %>
@@ -32,11 +30,7 @@
       <% week.forEach(function (cell) { %>
         <div class="cal-cell <%= cell.inMonth ? '' : 'is-out' %> <%= cell.isToday ? 'is-today' : '' %>">
           <div class="cal-daynum">
-            <% if (isAdmin) { %>
-              <a href="/events/new?fecha=<%= cell.key %>" title="Agregar evento"><%= cell.day %></a>
-            <% } else { %>
-              <%= cell.day %>
-            <% } %>
+            <a href="/events/new?fecha=<%= cell.key %>" title="Agregar evento"><%= cell.day %></a>
           </div>
           <% cell.events.forEach(function (e) { %>
             <a class="cal-event <%= e.all_day ? 'is-allday' : '' %>" href="/events/<%= e.id %>" title="<%= e.title %>">

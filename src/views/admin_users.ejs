@@ -75,6 +75,74 @@
 </div>
 
 <div class="card">
+  <h2>Tipos de aviso</h2>
+  <form method="POST" action="/admin/announcement-types" class="form-grid" style="margin-bottom:14px;">
+    <div class="row-2">
+      <div class="field">
+        <label for="atname">Nuevo tipo de aviso</label>
+        <input type="text" id="atname" name="name" placeholder="Ej: Mantenimiento programado" required />
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn">Agregar</button>
+      </div>
+    </div>
+  </form>
+  <% if (announcementTypes.length === 0) { %>
+    <p class="muted">No hay tipos cargados.</p>
+  <% } else { %>
+    <table class="table">
+      <tbody>
+        <% announcementTypes.forEach(function (t) { %>
+          <tr>
+            <td><%= t.name %></td>
+            <td style="text-align:right;">
+              <form method="POST" action="/admin/announcement-types/<%= t.id %>?_method=DELETE" class="inline"
+                    onsubmit="return confirm('¿Eliminar el tipo \'<%= t.name %>\'?');">
+                <button type="submit" class="btn-ghost btn-sm">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
+  <h2>Tipos de solicitud</h2>
+  <form method="POST" action="/admin/request-types" class="form-grid" style="margin-bottom:14px;">
+    <div class="row-2">
+      <div class="field">
+        <label for="rtname">Nuevo tipo de solicitud</label>
+        <input type="text" id="rtname" name="name" placeholder="Ej: Adelanto de sueldo" required />
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn">Agregar</button>
+      </div>
+    </div>
+  </form>
+  <% if (requestTypes.length === 0) { %>
+    <p class="muted">No hay tipos cargados.</p>
+  <% } else { %>
+    <table class="table">
+      <tbody>
+        <% requestTypes.forEach(function (t) { %>
+          <tr>
+            <td><%= t.name %></td>
+            <td style="text-align:right;">
+              <form method="POST" action="/admin/request-types/<%= t.id %>?_method=DELETE" class="inline"
+                    onsubmit="return confirm('¿Eliminar el tipo \'<%= t.name %>\'?');">
+                <button type="submit" class="btn-ghost btn-sm">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
   <h2>Correos autorizados</h2>
   <% if (authorized.length === 0) { %>
     <p class="muted">Todavía no autorizaste a nadie.</p>

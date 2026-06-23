@@ -12,8 +12,8 @@
     <div class="field">
       <label for="kind">Tipo de solicitud</label>
       <select id="kind" name="kind">
-        <% h.REQUEST_KINDS.forEach(function (k) { %>
-          <option value="<%= k.value %>"><%= k.label %></option>
+        <% types.forEach(function (t) { %>
+          <option value="<%= t.name %>"><%= t.name %></option>
         <% }) %>
       </select>
     </div>

@@ -202,9 +202,17 @@ function buildEventTimes(event) {
   }
   const startTime = event.start_time || '09:00';
   const endTime = event.end_time || startTime;
+  // Si el fin es menor o igual que el inicio, el evento cruza la medianoche:
+  // el fin va al día siguiente.
+  let endDateStr = dateStr;
+  if (endTime <= startTime) {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    endDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
   return {
     start: { dateTime: `${dateStr}T${startTime}:00`, timeZone: TIMEZONE },
-    end: { dateTime: `${dateStr}T${endTime}:00`, timeZone: TIMEZONE },
+    end: { dateTime: `${endDateStr}T${endTime}:00`, timeZone: TIMEZONE },
   };
 }
 
@@ -229,6 +237,26 @@ async function createGoogleEvent(adminUser, event, attendeeEmails) {
   return { id: res.data.id, htmlLink: res.data.htmlLink };
 }
 
+// Actualiza un evento existente en Google Calendar.
+async function updateGoogleEvent(adminUser, googleEventId, event, attendeeEmails) {
+  const calendar = getCalendarForUser(adminUser);
+  const times = buildEventTimes(event);
+  const res = await calendar.events.update({
+    calendarId: 'primary',
+    eventId: googleEventId,
+    sendUpdates: 'all',
+    requestBody: {
+      summary: event.title,
+      description: event.description || undefined,
+      location: event.location || undefined,
+      start: times.start,
+      end: times.end,
+      attendees: attendeeEmails.map((email) => ({ email })),
+    },
+  });
+  return { id: res.data.id, htmlLink: res.data.htmlLink };
+}
+
 // Borra el evento de Google Calendar (avisa a los invitados).
 async function deleteGoogleEvent(adminUser, googleEventId) {
   const calendar = getCalendarForUser(adminUser);
@@ -245,6 +273,7 @@ module.exports = {
   saveTokensFromCode,
   hasCalendar,
   createGoogleEvent,
+  updateGoogleEvent,
   deleteGoogleEvent,
   getAdminWithDrive,
   uploadToDrive,

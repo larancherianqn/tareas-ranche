@@ -136,6 +136,20 @@ CREATE TABLE IF NOT EXISTS sectors (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Tipos de aviso y de solicitud (configurables desde Equipo).
+CREATE TABLE IF NOT EXISTS announcement_types (
+  id   SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+CREATE TABLE IF NOT EXISTS request_types (
+  id   SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+INSERT INTO announcement_types (name) VALUES ('Aviso'), ('Cronograma'), ('Día no laborable')
+  ON CONFLICT (name) DO NOTHING;
+INSERT INTO request_types (name) VALUES ('Licencia por enfermedad'), ('Vacaciones'), ('Día personal'), ('Otro')
+  ON CONFLICT (name) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_requests_user ON requests (user_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_owner ON attachments (owner_type, owner_id);
 

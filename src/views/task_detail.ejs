@@ -42,6 +42,10 @@
         <%= h.formatDate(task.due_date) %><% if (task.due_date && task.status !== 'hecha' && d < 0) { %> · vencida<% } %>
       </dd>
     </div>
+    <div>
+      <dt>Creada por</dt>
+      <dd><%= task.creator_name || '—' %><br><span class="muted" style="font-size:13px;"><%= h.formatDateTime(task.created_at) %></span></dd>
+    </div>
   </dl>
 
   <% if (task.description) { %>

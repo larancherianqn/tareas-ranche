@@ -65,6 +65,8 @@ a:hover { text-decoration: underline; }
   letter-spacing: -0.02em;
 }
 .brand:hover { text-decoration: none; }
+.brand-logo { width: 26px; height: 26px; display: block; }
+.login-logo { width: 56px; height: 56px; display: block; margin: 0 auto 16px; }
 .brand-mark {
   width: 14px;
   height: 14px;

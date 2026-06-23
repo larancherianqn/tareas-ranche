@@ -6,10 +6,13 @@
     <h1><%= event.title %></h1>
   </div>
   <% if (isAdmin) { %>
-    <form method="POST" action="/events/<%= event.id %>?_method=DELETE" class="inline"
-          onsubmit="return confirm('¿Eliminar este evento? También se borra de Google Calendar y se avisa a los invitados.');">
-      <button type="submit" class="btn-danger btn-sm">Eliminar</button>
-    </form>
+    <div style="display:flex; gap:8px;">
+      <a class="btn-ghost btn-sm" href="/events/<%= event.id %>/edit">Editar</a>
+      <form method="POST" action="/events/<%= event.id %>?_method=DELETE" class="inline"
+            onsubmit="return confirm('¿Eliminar este evento? También se borra de Google Calendar y se avisa a los invitados.');">
+        <button type="submit" class="btn-danger btn-sm">Eliminar</button>
+      </form>
+    </div>
   <% } %>
 </div>
 

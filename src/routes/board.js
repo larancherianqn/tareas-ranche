@@ -60,8 +60,11 @@ router.get('/buzon', ensureAuth, async (req, res, next) => {
 });
 
 // ---------- Avisos ----------
-router.get('/avisos/new', ensureAuth, ensureAdmin, (req, res) => {
-  res.render('aviso_form', { title: 'Nuevo aviso' });
+router.get('/avisos/new', ensureAuth, ensureAdmin, async (req, res, next) => {
+  try {
+    const { rows: types } = await db.query('SELECT name FROM announcement_types ORDER BY name');
+    res.render('aviso_form', { title: 'Nuevo aviso', types });
+  } catch (err) { next(err); }
 });
 
 router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, next) => {
@@ -71,7 +74,7 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
       req.session.flash = { type: 'error', text: 'El aviso necesita un título.' };
       return res.redirect('/avisos/new');
     }
-    const safeKind = VALID_ANN_KINDS.includes(kind) ? kind : 'aviso';
+    const safeKind = (kind && kind.trim()) ? kind.trim() : 'Aviso';
     const { rows } = await db.query(
       `INSERT INTO announcements (title, body, kind, ref_date, created_by)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
@@ -121,14 +124,17 @@ router.delete('/avisos/:id', ensureAuth, ensureAdmin, async (req, res, next) => 
 });
 
 // ---------- Solicitudes ----------
-router.get('/solicitudes/new', ensureAuth, (req, res) => {
-  res.render('solicitud_form', { title: 'Nueva solicitud' });
+router.get('/solicitudes/new', ensureAuth, async (req, res, next) => {
+  try {
+    const { rows: types } = await db.query('SELECT name FROM request_types ORDER BY name');
+    res.render('solicitud_form', { title: 'Nueva solicitud', types });
+  } catch (err) { next(err); }
 });
 
 router.post('/solicitudes', ensureAuth, uploadFiles, async (req, res, next) => {
   try {
     const { kind, start_date, end_date, reason } = req.body;
-    const safeKind = VALID_REQ_KINDS.includes(kind) ? kind : 'otro';
+    const safeKind = (kind && kind.trim()) ? kind.trim() : 'Otro';
     const { rows } = await db.query(
       `INSERT INTO requests (user_id, kind, start_date, end_date, reason)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,

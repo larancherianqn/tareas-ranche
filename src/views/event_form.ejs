@@ -1,13 +1,16 @@
 <%- include('partials/head') %>
 
+<% var editing = (typeof event !== 'undefined' && event); %>
+<% var attIds = (typeof attendeeIds !== 'undefined' && attendeeIds) ? attendeeIds : []; %>
+
 <div class="page-head">
   <div>
-    <p class="eyebrow"><a class="back-link" href="/calendar">← Volver al calendario</a></p>
-    <h1>Nuevo evento</h1>
+    <p class="eyebrow"><a class="back-link" href="<%= editing ? '/events/' + event.id : '/calendar' %>">← Volver</a></p>
+    <h1><%= editing ? 'Editar evento' : 'Nuevo evento' %></h1>
   </div>
 </div>
 
-<% if (!calendarConnected) { %>
+<% if (!calendarConnected && currentUser && currentUser.role === 'admin') { %>
   <div class="flash flash-error" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
     <span>No conectaste Google Calendar. El evento se va a guardar en la app, pero no se enviarán invitaciones por mail.</span>
     <a class="btn btn-sm" href="/admin/calendar/connect">Conectar ahora</a>
@@ -15,20 +18,20 @@
 <% } %>
 
 <div class="card">
-  <form method="POST" action="/events" class="form-grid">
+  <form method="POST" action="<%= editing ? '/events/' + event.id + '?_method=PUT' : '/events' %>" class="form-grid">
     <div class="field">
       <label for="title">Título</label>
-      <input type="text" id="title" name="title" required maxlength="200" placeholder="Ej: Reunión de equipo" />
+      <input type="text" id="title" name="title" required maxlength="200" placeholder="Ej: Reunión de equipo" value="<%= editing ? event.title : '' %>" />
     </div>
 
     <div class="field">
       <label for="description">Descripción</label>
-      <textarea id="description" name="description" placeholder="Detalle del evento (opcional)"></textarea>
+      <textarea id="description" name="description" placeholder="Detalle del evento (opcional)"><%= editing ? (event.description || '') : '' %></textarea>
     </div>
 
     <div class="field">
       <label for="location">Lugar</label>
-      <input type="text" id="location" name="location" placeholder="Dirección, sala o link (opcional)" />
+      <input type="text" id="location" name="location" placeholder="Dirección, sala o link (opcional)" value="<%= editing ? (event.location || '') : '' %>" />
     </div>
 
     <div class="row-2">
@@ -38,36 +41,44 @@
       </div>
       <div class="field">
         <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:15px; color:var(--ink); margin-top:22px;">
-          <input type="checkbox" id="all_day" name="all_day" onchange="document.getElementById('time-row').style.display = this.checked ? 'none' : 'grid';" />
+          <input type="checkbox" id="all_day" name="all_day" <%= (editing && event.all_day) ? 'checked' : '' %> onchange="document.getElementById('time-row').style.display = this.checked ? 'none' : 'grid';" />
           Dura todo el día
         </label>
       </div>
     </div>
 
-    <div class="row-2" id="time-row">
+    <div class="row-2" id="time-row" style="<%= (editing && event.all_day) ? 'display:none;' : '' %>">
       <div class="field">
         <label for="start_time">Hora de inicio</label>
-        <input type="time" id="start_time" name="start_time" value="09:00" />
+        <input type="time" id="start_time" name="start_time" value="<%= editing && event.start_time ? event.start_time : '09:00' %>" />
       </div>
       <div class="field">
         <label for="end_time">Hora de fin</label>
-        <input type="time" id="end_time" name="end_time" value="10:00" />
+        <input type="time" id="end_time" name="end_time" value="<%= editing && event.end_time ? event.end_time : '10:00' %>" />
       </div>
     </div>
 
     <div class="field">
-      <label for="attendees">Invitar a</label>
+      <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:15px; color:var(--ink);">
+        <input type="checkbox" id="all_team" name="all_team" <%= editing ? '' : 'checked' %> />
+        Invitar a todo el equipo (se sincroniza en el Google Calendar de todos)
+      </label>
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">Si lo dejás marcado, se invita a todo el equipo y no hace falta elegir abajo.</p>
+    </div>
+
+    <div class="field">
+      <label for="attendees">O invitar solo a algunos</label>
       <select id="attendees" name="attendees" multiple size="<%= Math.min(Math.max(users.length, 3), 8) %>">
         <% users.forEach(function (u) { %>
-          <option value="<%= u.id %>"><%= u.name || u.email %></option>
+          <option value="<%= u.id %>" <%= attIds.indexOf(u.id) !== -1 ? 'selected' : '' %>><%= u.name || u.email %></option>
         <% }) %>
       </select>
       <p class="muted" style="font-size:13px; margin:6px 0 0;">Mantené Ctrl (o Cmd) para elegir varios. Les llega la invitación a su Google Calendar y por mail.</p>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn">Crear evento</button>
-      <a class="btn-ghost" href="/calendar">Cancelar</a>
+      <button type="submit" class="btn"><%= editing ? 'Guardar cambios' : 'Crear evento' %></button>
+      <a class="btn-ghost" href="<%= editing ? '/events/' + event.id : '/calendar' %>">Cancelar</a>
     </div>
   </form>
 </div>

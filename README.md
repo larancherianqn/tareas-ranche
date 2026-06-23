@@ -89,6 +89,11 @@ Son tres bloques: (A) Google, (B) GitHub, (C) Render. Hacelos en ese orden.
 - En **Buzón** conviven dos cosas. **Avisos**: los publica el administrador para todo el equipo (cronogramas en PDF, comunicados, días no laborables) y pueden llevar archivos adjuntos. **Solicitudes**: las cargan los empleados (licencia por enfermedad, vacaciones, etc.), con adjunto opcional como un certificado.
 - El administrador ve todas las solicitudes y las marca como Pendiente, Aprobada o Rechazada, con un comentario.
 - Se pueden adjuntar PDF, imágenes, Word y otros (hasta 5 por vez, 10 MB cada uno).
+- Los **tipos de aviso y de solicitud** se configuran desde **Equipo**: podés agregar o quitar opciones cuando quieras.
+
+## Cambiar el logo
+
+El logo está en `src/public/logo.svg`. Para usar el tuyo, reemplazá ese archivo por tu imagen (idealmente otro `.svg` o un `.png` cuadrado) manteniendo el nombre `logo.svg`, o subí tu archivo y cambiá las referencias `/logo.svg` en `src/views/partials/head.ejs` y `src/views/login.ejs`.
 - **Dónde se guardan los archivos:** en tu Google Drive, en una carpeta "App Tareas" que arma subcarpetas por mes automáticamente (ej: "2026-06 Junio"). En Drive los archivos quedan privados (solo los ves vos); los empleados los ven únicamente desde dentro de la app, según permisos. Necesitás conectar tu Google (mismo botón que el del calendario) para que la subida funcione.
 
 ---

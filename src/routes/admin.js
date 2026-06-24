@@ -4,7 +4,9 @@ const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.use(ensureAuth, ensureAdmin);
+// El candado de admin aplica SOLO a las rutas que empiezan con /admin.
+// (Antes estaba sin ruta y bloqueaba /calendar y /buzon de los empleados.)
+router.use('/admin', ensureAuth, ensureAdmin);
 
 // Lista de correos autorizados + quiénes ya entraron.
 router.get('/admin/users', async (req, res, next) => {

@@ -58,6 +58,7 @@ router.get('/', async (req, res, next) => {
          LEFT JOIN sectors s ON s.id = t.sector_id
          ${whereSql}
          ORDER BY
+           t.urgent DESC,
            CASE t.status WHEN 'pendiente' THEN 0 WHEN 'en_curso' THEN 1 ELSE 2 END,
            t.due_date ASC NULLS LAST,
            t.created_at DESC`,
@@ -125,10 +126,11 @@ router.post('/tasks', ensureAuth, uploadFiles, async (req, res, next) => {
     const safeStatus = VALID_STATUSES.includes(status) ? status : 'pendiente';
     const safeCategory = VALID_CATEGORIES.includes(category) ? category : null;
     const safeSector = sector_id && !Number.isNaN(parseInt(sector_id, 10)) ? parseInt(sector_id, 10) : null;
+    const urgent = req.body.urgent === 'on';
 
     const { rows } = await db.query(
-      `INSERT INTO tasks (title, description, assigned_to, created_by, due_date, status, category, sector_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO tasks (title, description, assigned_to, created_by, due_date, status, category, sector_id, urgent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
       [
         title.trim(),
@@ -139,6 +141,7 @@ router.post('/tasks', ensureAuth, uploadFiles, async (req, res, next) => {
         safeStatus,
         safeCategory,
         safeSector,
+        urgent,
       ]
     );
 
@@ -281,12 +284,13 @@ router.put('/tasks/:id', ensureAdmin, uploadFiles, async (req, res, next) => {
     const safeStatus = VALID_STATUSES.includes(status) ? status : 'pendiente';
     const safeCategory = VALID_CATEGORIES.includes(category) ? category : null;
     const safeSector = sector_id && !Number.isNaN(parseInt(sector_id, 10)) ? parseInt(sector_id, 10) : null;
+    const urgent = req.body.urgent === 'on';
 
     await db.query(
       `UPDATE tasks
           SET title = $1, description = $2, assigned_to = $3, due_date = $4,
-              status = $5, category = $6, sector_id = $7, updated_at = now()
-        WHERE id = $8`,
+              status = $5, category = $6, sector_id = $7, urgent = $8, updated_at = now()
+        WHERE id = $9`,
       [
         title.trim(),
         description?.trim() || null,
@@ -295,6 +299,7 @@ router.put('/tasks/:id', ensureAdmin, uploadFiles, async (req, res, next) => {
         safeStatus,
         safeCategory,
         safeSector,
+        urgent,
         req.params.id,
       ]
     );

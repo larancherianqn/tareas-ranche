@@ -64,9 +64,11 @@
   <div class="task-list">
     <% tasks.forEach(function (t) { %>
       <% var d = h.daysUntil(t.due_date); %>
-      <a class="task-row" data-s="<%= t.status %>" href="/tasks/<%= t.id %>">
+      <a class="task-row<%= t.urgent ? ' is-urgent' : '' %>" data-s="<%= t.status %>" href="/tasks/<%= t.id %>">
         <div class="body">
-          <p class="t-title"><%= t.title %></p>
+          <p class="t-title">
+            <% if (t.urgent) { %><span class="urgent-tag">Urgente</span> <% } %><%= t.title %>
+          </p>
           <div class="task-meta">
             <% if (t.category) { %>
               <span class="cat-tag"><%= h.categoryLabel(t.category) %></span>

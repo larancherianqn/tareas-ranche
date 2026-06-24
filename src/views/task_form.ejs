@@ -82,6 +82,14 @@
     </div>
 
     <div class="field">
+      <label style="display:flex; align-items:center; gap:10px; text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:15px; color:var(--ink);">
+        <input type="checkbox" id="urgent" name="urgent" <%= (editing && task.urgent) ? 'checked' : '' %> />
+        Marcar como <strong>urgente</strong>
+      </label>
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">Las tareas urgentes aparecen primero en el listado y con un cartel rojo.</p>
+    </div>
+
+    <div class="field">
       <label for="files">Foto de referencia (opcional)</label>
       <input type="file" id="files" name="files" accept="image/*" multiple />
       <p class="muted" style="font-size:13px; margin:6px 0 0;">Una imagen que muestre cómo debe quedar / qué hay que hacer. Podés subir más de una.</p>

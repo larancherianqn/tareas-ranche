@@ -198,6 +198,24 @@ a:hover { text-decoration: underline; }
   margin: 0 0 3px;
 }
 .task-row[data-s="hecha"] .t-title { color: var(--muted); }
+
+/* Tareas urgentes */
+.task-row.is-urgent { border-left-color: #d92d20; background: #fff6f5; }
+.task-row.is-urgent:hover { box-shadow: 0 6px 18px rgba(217,45,32,0.12); }
+.urgent-tag {
+  display: inline-block;
+  background: #d92d20;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
 .task-meta {
   font-size: 13px;
   color: var(--muted);

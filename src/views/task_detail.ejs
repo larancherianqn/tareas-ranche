@@ -5,7 +5,7 @@
 <div class="page-head">
   <div>
     <p class="eyebrow"><a class="back-link" href="/">← Volver a tareas</a></p>
-    <h1><%= task.title %></h1>
+    <h1><% if (task.urgent) { %><span class="urgent-tag">Urgente</span> <% } %><%= task.title %></h1>
   </div>
   <% if (isAdmin) { %>
     <div style="display:flex; gap:8px;">

@@ -23,16 +23,17 @@ function uploadFiles(req, res, next) {
 }
 
 // Sube los archivos a Google Drive y guarda la referencia. Devuelve un resumen.
-async function saveAttachments(ownerType, ownerId, files, uploaderId) {
+async function saveAttachments(ownerType, ownerId, files, uploaderId, folderPath) {
   if (!files || files.length === 0) return { uploaded: 0, failed: 0, noConnection: false };
   const admin = await gdrive.getAdminWithDrive();
   if (!admin) return { uploaded: 0, failed: files.length, noConnection: true };
 
+  const segments = Array.isArray(folderPath) && folderPath.length ? folderPath : ['Otros'];
   let uploaded = 0;
   let failed = 0;
   for (const f of files) {
     try {
-      const driveId = await gdrive.uploadToDrive(admin, f);
+      const driveId = await gdrive.uploadToDrive(admin, f, segments);
       await db.query(
         `INSERT INTO attachments (owner_type, owner_id, filename, mime_type, size_bytes, drive_file_id, uploaded_by)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,

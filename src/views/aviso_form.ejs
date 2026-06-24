@@ -31,6 +31,17 @@
     </div>
 
     <div class="field">
+      <label for="target_employee_id">Para</label>
+      <select id="target_employee_id" name="target_employee_id">
+        <option value="">Todo el equipo</option>
+        <% employees.forEach(function (e) { %>
+          <option value="<%= e.id %>"><%= e.name %></option>
+        <% }) %>
+      </select>
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">Si elegís un empleado, el aviso y sus archivos quedan en el legajo de esa persona en Drive.</p>
+    </div>
+
+    <div class="field">
       <label for="body">Mensaje</label>
       <textarea id="body" name="body" placeholder="Escribí el aviso (opcional)"></textarea>
     </div>

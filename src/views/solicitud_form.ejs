@@ -18,6 +18,17 @@
       </select>
     </div>
 
+    <div class="field">
+      <label for="employee_id">¿De qué empleado?</label>
+      <select id="employee_id" name="employee_id">
+        <option value="">Sin especificar</option>
+        <% (typeof employees !== 'undefined' ? employees : []).forEach(function (e) { %>
+          <option value="<%= e.id %>"><%= e.name %></option>
+        <% }) %>
+      </select>
+      <p class="muted" style="font-size:13px; margin:6px 0 0;">Si la cargás en nombre de un empleado, sus archivos van al legajo de esa persona en Drive.</p>
+    </div>
+
     <div class="row-2">
       <div class="field">
         <label for="start_date">Desde</label>

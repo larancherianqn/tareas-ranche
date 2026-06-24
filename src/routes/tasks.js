@@ -149,7 +149,7 @@ router.post('/tasks', ensureAuth, uploadFiles, async (req, res, next) => {
       [rows[0].id, req.user.id, safeStatus, 'Tarea creada.']
     );
 
-    const att = await saveAttachments('task', rows[0].id, req.files, req.user.id);
+    const att = await saveAttachments('task', rows[0].id, req.files, req.user.id, ['Tareas']);
     req.session.flash = attachmentFlash('Tarea creada.', att);
     res.redirect(`/tasks/${rows[0].id}`);
   } catch (err) {
@@ -299,7 +299,7 @@ router.put('/tasks/:id', ensureAdmin, uploadFiles, async (req, res, next) => {
       ]
     );
 
-    const att = await saveAttachments('task', req.params.id, req.files, req.user.id);
+    const att = await saveAttachments('task', req.params.id, req.files, req.user.id, ['Tareas']);
     req.session.flash = attachmentFlash('Tarea actualizada.', att);
     res.redirect(`/tasks/${req.params.id}`);
   } catch (err) {

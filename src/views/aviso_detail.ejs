@@ -16,6 +16,7 @@
 <div class="card">
   <p style="margin:0 0 12px;">
     <span class="kind-tag"><%= h.announcementKindLabel(announcement.kind) %></span>
+    <span class="muted"> · Para: <%= announcement.target_name ? announcement.target_name : 'Todo el equipo' %></span>
     <% if (announcement.ref_date) { %>
       <span class="muted"> · <%= h.formatDate(announcement.ref_date) %></span>
     <% } %>

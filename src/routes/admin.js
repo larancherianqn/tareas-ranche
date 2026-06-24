@@ -26,7 +26,11 @@ router.get('/admin/users', async (req, res, next) => {
     );
     const { rows: announcementTypes } = await db.query('SELECT * FROM announcement_types ORDER BY name');
     const { rows: requestTypes } = await db.query('SELECT * FROM request_types ORDER BY name');
-    res.render('admin_users', { title: 'Equipo', authorized, admins, sectors, announcementTypes, requestTypes });
+    const { rows: employees } = await db.query(
+      `SELECT e.*, s.name AS sector_name FROM employees e
+         LEFT JOIN sectors s ON s.id = e.sector_id ORDER BY e.name`
+    );
+    res.render('admin_users', { title: 'Equipo', authorized, admins, sectors, announcementTypes, requestTypes, employees });
   } catch (err) {
     next(err);
   }
@@ -141,6 +145,41 @@ router.post('/admin/request-types', async (req, res, next) => {
 router.delete('/admin/request-types/:id', async (req, res, next) => {
   try {
     await db.query('DELETE FROM request_types WHERE id = $1', [req.params.id]);
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+
+// Empleados (legajos).
+router.post('/admin/employees', async (req, res, next) => {
+  try {
+    const name = (req.body.name || '').trim();
+    const email = (req.body.email || '').toLowerCase().trim() || null;
+    const sectorId = req.body.sector_id && !Number.isNaN(parseInt(req.body.sector_id, 10))
+      ? parseInt(req.body.sector_id, 10) : null;
+    if (name) {
+      await db.query('INSERT INTO employees (name, email, sector_id) VALUES ($1, $2, $3)', [name, email, sectorId]);
+    } else {
+      req.session.flash = { type: 'error', text: 'El empleado necesita un nombre.' };
+    }
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+router.post('/admin/employees/:id', async (req, res, next) => {
+  try {
+    const name = (req.body.name || '').trim();
+    const email = (req.body.email || '').toLowerCase().trim() || null;
+    const sectorId = req.body.sector_id && !Number.isNaN(parseInt(req.body.sector_id, 10))
+      ? parseInt(req.body.sector_id, 10) : null;
+    if (name) {
+      await db.query('UPDATE employees SET name=$1, email=$2, sector_id=$3 WHERE id=$4', [name, email, sectorId, req.params.id]);
+    }
+    res.redirect('/admin/users');
+  } catch (err) { next(err); }
+});
+router.delete('/admin/employees/:id', async (req, res, next) => {
+  try {
+    await db.query('DELETE FROM employees WHERE id = $1', [req.params.id]);
+    req.session.flash = { type: 'ok', text: 'Empleado eliminado del listado.' };
     res.redirect('/admin/users');
   } catch (err) { next(err); }
 });

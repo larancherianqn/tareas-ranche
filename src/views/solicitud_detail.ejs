@@ -15,6 +15,10 @@
       <dd><%= request.requester_name || request.requester_email || '—' %></dd>
     </div>
     <div>
+      <dt>Empleado</dt>
+      <dd><%= request.employee_name || '—' %></dd>
+    </div>
+    <div>
       <dt>Desde</dt>
       <dd><%= h.formatDate(request.start_date) %></dd>
     </div>

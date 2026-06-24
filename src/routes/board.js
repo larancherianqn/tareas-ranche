@@ -63,7 +63,8 @@ router.get('/buzon', ensureAuth, async (req, res, next) => {
 router.get('/avisos/new', ensureAuth, ensureAdmin, async (req, res, next) => {
   try {
     const { rows: types } = await db.query('SELECT name FROM announcement_types ORDER BY name');
-    res.render('aviso_form', { title: 'Nuevo aviso', types });
+    const { rows: employees } = await db.query('SELECT id, name FROM employees ORDER BY name');
+    res.render('aviso_form', { title: 'Nuevo aviso', types, employees });
   } catch (err) { next(err); }
 });
 
@@ -75,12 +76,23 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
       return res.redirect('/avisos/new');
     }
     const safeKind = (kind && kind.trim()) ? kind.trim() : 'Aviso';
+    const empId = req.body.target_employee_id && !Number.isNaN(parseInt(req.body.target_employee_id, 10))
+      ? parseInt(req.body.target_employee_id, 10) : null;
+
     const { rows } = await db.query(
-      `INSERT INTO announcements (title, body, kind, ref_date, created_by)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [title.trim(), body?.trim() || null, safeKind, ref_date || null, req.user.id]
+      `INSERT INTO announcements (title, body, kind, ref_date, created_by, target_employee_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [title.trim(), body?.trim() || null, safeKind, ref_date || null, req.user.id, empId]
     );
-    const result = await saveAttachments('announcement', rows[0].id, req.files, req.user.id);
+
+    // Carpeta de Drive: legajo del empleado, o avisos generales.
+    let folderPath = ['Avisos generales', safeKind];
+    if (empId) {
+      const { rows: er } = await db.query('SELECT name FROM employees WHERE id = $1', [empId]);
+      if (er[0]) folderPath = ['Legajos', er[0].name, safeKind];
+    }
+
+    const result = await saveAttachments('announcement', rows[0].id, req.files, req.user.id, folderPath);
     req.session.flash = attachmentFlash('Aviso publicado.', result);
     res.redirect(`/avisos/${rows[0].id}`);
   } catch (err) {
@@ -91,8 +103,11 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
 router.get('/avisos/:id', ensureAuth, async (req, res, next) => {
   try {
     const { rows } = await db.query(
-      `SELECT a.*, u.name AS creator_name FROM announcements a
-         LEFT JOIN users u ON u.id = a.created_by WHERE a.id = $1`,
+      `SELECT a.*, u.name AS creator_name, e.name AS target_name
+         FROM announcements a
+         LEFT JOIN users u ON u.id = a.created_by
+         LEFT JOIN employees e ON e.id = a.target_employee_id
+        WHERE a.id = $1`,
       [req.params.id]
     );
     const announcement = rows[0];
@@ -127,7 +142,8 @@ router.delete('/avisos/:id', ensureAuth, ensureAdmin, async (req, res, next) => 
 router.get('/solicitudes/new', ensureAuth, async (req, res, next) => {
   try {
     const { rows: types } = await db.query('SELECT name FROM request_types ORDER BY name');
-    res.render('solicitud_form', { title: 'Nueva solicitud', types });
+    const { rows: employees } = await db.query('SELECT id, name FROM employees ORDER BY name');
+    res.render('solicitud_form', { title: 'Nueva solicitud', types, employees, isAdmin: req.user.role === 'admin' });
   } catch (err) { next(err); }
 });
 
@@ -135,12 +151,23 @@ router.post('/solicitudes', ensureAuth, uploadFiles, async (req, res, next) => {
   try {
     const { kind, start_date, end_date, reason } = req.body;
     const safeKind = (kind && kind.trim()) ? kind.trim() : 'Otro';
+    const empId = req.body.employee_id && !Number.isNaN(parseInt(req.body.employee_id, 10))
+      ? parseInt(req.body.employee_id, 10) : null;
+
     const { rows } = await db.query(
-      `INSERT INTO requests (user_id, kind, start_date, end_date, reason)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [req.user.id, safeKind, start_date || null, end_date || null, reason?.trim() || null]
+      `INSERT INTO requests (user_id, kind, start_date, end_date, reason, employee_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [req.user.id, safeKind, start_date || null, end_date || null, reason?.trim() || null, empId]
     );
-    const result = await saveAttachments('request', rows[0].id, req.files, req.user.id);
+
+    // Carpeta de Drive: legajo del empleado elegido, o carpeta general de solicitudes.
+    let folderPath = ['Solicitudes', safeKind];
+    if (empId) {
+      const { rows: er } = await db.query('SELECT name FROM employees WHERE id = $1', [empId]);
+      if (er[0]) folderPath = ['Legajos', er[0].name, 'Solicitudes', safeKind];
+    }
+
+    const result = await saveAttachments('request', rows[0].id, req.files, req.user.id, folderPath);
     req.session.flash = attachmentFlash('Solicitud enviada.', result);
     res.redirect(`/solicitudes/${rows[0].id}`);
   } catch (err) {
@@ -152,10 +179,11 @@ router.get('/solicitudes/:id', ensureAuth, async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT r.*, u.name AS requester_name, u.email AS requester_email,
-              rv.name AS reviewer_name
+              rv.name AS reviewer_name, emp.name AS employee_name
          FROM requests r
          LEFT JOIN users u ON u.id = r.user_id
          LEFT JOIN users rv ON rv.id = r.reviewed_by
+         LEFT JOIN employees emp ON emp.id = r.employee_id
         WHERE r.id = $1`,
       [req.params.id]
     );

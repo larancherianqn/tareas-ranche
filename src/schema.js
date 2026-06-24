@@ -139,6 +139,16 @@ CREATE TABLE IF NOT EXISTS sectors (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Roster de empleados (legajos). Independiente de las cuentas de login.
+CREATE TABLE IF NOT EXISTS employees (
+  id              SERIAL PRIMARY KEY,
+  name            TEXT NOT NULL,
+  email           TEXT,
+  sector_id       INTEGER REFERENCES sectors(id) ON DELETE SET NULL,
+  drive_folder_id TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Tipos de aviso y de solicitud (configurables desde Equipo).
 CREATE TABLE IF NOT EXISTS announcement_types (
   id   SERIAL PRIMARY KEY,
@@ -163,4 +173,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_token_expiry TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sector_id INTEGER REFERENCES sectors(id) ON DELETE SET NULL;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sector_id INTEGER REFERENCES sectors(id) ON DELETE SET NULL;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS target_employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL;
+ALTER TABLE requests ADD COLUMN IF NOT EXISTS employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL;
 `;

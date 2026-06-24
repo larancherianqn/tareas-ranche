@@ -75,6 +75,57 @@
 </div>
 
 <div class="card">
+  <h2>Empleados (legajos)</h2>
+  <p class="muted" style="font-size:13px; margin:0 0 14px;">Cargá a tu gente acá. Después podés dirigirles avisos y solicitudes, y sus archivos se guardan en su legajo de Drive. No hace falta que tengan cuenta para figurar en el listado.</p>
+  <form method="POST" action="/admin/employees" class="form-grid" style="margin-bottom:14px;">
+    <div class="row-2">
+      <div class="field">
+        <label for="empname">Nombre</label>
+        <input type="text" id="empname" name="name" placeholder="Nombre y apellido" required />
+      </div>
+      <div class="field">
+        <label for="empemail">Email (opcional)</label>
+        <input type="text" id="empemail" name="email" placeholder="para invitarlo al calendario" />
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label for="empsector">Sector (opcional)</label>
+        <select id="empsector" name="sector_id">
+          <option value="">Sin sector</option>
+          <% sectors.forEach(function (s) { %><option value="<%= s.id %>"><%= s.name %></option><% }) %>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn">Agregar empleado</button>
+      </div>
+    </div>
+  </form>
+  <% if (employees.length === 0) { %>
+    <p class="muted">Todavía no cargaste empleados.</p>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Sector</th><th></th></tr></thead>
+      <tbody>
+        <% employees.forEach(function (e) { %>
+          <tr>
+            <td><strong><%= e.name %></strong></td>
+            <td><%= e.email || '—' %></td>
+            <td><%= e.sector_name || '—' %></td>
+            <td style="text-align:right;">
+              <form method="POST" action="/admin/employees/<%= e.id %>?_method=DELETE" class="inline"
+                    onsubmit="return confirm('¿Eliminar a <%= e.name %> del listado? (No borra su legajo en Drive.)');">
+                <button type="submit" class="btn-ghost btn-sm">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card">
   <h2>Tipos de aviso</h2>
   <form method="POST" action="/admin/announcement-types" class="form-grid" style="margin-bottom:14px;">
     <div class="row-2">

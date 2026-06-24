@@ -129,19 +129,10 @@ async function getOrCreateFolder(drive, name, parentId) {
   return created.data.id;
 }
 
-// Nombre de la carpeta del mes, ej: "2026-06 Junio".
-function monthFolderName(date) {
-  const d = date || new Date();
-  const mes = d.toLocaleDateString('es-AR', { month: 'long', timeZone: TIMEZONE });
-  const label = mes.charAt(0).toUpperCase() + mes.slice(1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')} ${label}`;
-}
-
-// Devuelve (creando si hace falta) la carpeta del mes actual dentro de "App Tareas".
-async function ensureMonthFolder(drive) {
+// Devuelve (creando si hace falta) la carpeta raíz "App Tareas".
+async function ensureRoot(drive) {
   let rootId = await getSetting('drive_root_id');
   if (rootId) {
-    // Verificamos que siga existiendo; si no, lo recreamos.
     try {
       await drive.files.get({ fileId: rootId, fields: 'id, trashed' });
     } catch {
@@ -152,13 +143,23 @@ async function ensureMonthFolder(drive) {
     rootId = await getOrCreateFolder(drive, 'App Tareas', 'root');
     await setSetting('drive_root_id', rootId);
   }
-  return getOrCreateFolder(drive, monthFolderName(new Date()), rootId);
+  return rootId;
 }
 
-// Sube un archivo a la carpeta del mes. Devuelve el id del archivo en Drive.
-async function uploadToDrive(adminUser, file) {
+// Crea (si hace falta) una ruta de carpetas dentro de "App Tareas" y devuelve la última.
+async function ensureFolderPath(drive, segments) {
+  let parentId = await ensureRoot(drive);
+  for (const raw of segments) {
+    const name = String(raw || '').trim() || 'Sin nombre';
+    parentId = await getOrCreateFolder(drive, name, parentId);
+  }
+  return parentId;
+}
+
+// Sube un archivo a la ruta de carpetas indicada (ej: ['Legajos','Juan','Cronograma']).
+async function uploadToDrive(adminUser, file, segments) {
   const drive = google.drive({ version: 'v3', auth: clientForUser(adminUser) });
-  const folderId = await ensureMonthFolder(drive);
+  const folderId = await ensureFolderPath(drive, segments && segments.length ? segments : ['Otros']);
   const res = await drive.files.create({
     requestBody: { name: file.originalname, parents: [folderId] },
     media: { mimeType: file.mimetype, body: Readable.from(file.buffer) },

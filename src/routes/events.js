@@ -389,7 +389,7 @@ router.get('/admin/calendar/callback', ensureAuth, ensureAdmin, async (req, res,
       return res.redirect('/calendar');
     }
     await gcal.saveTokensFromCode(req.user.id, req.query.code);
-    req.session.flash = { type: 'ok', text: '¡Google Calendar conectado!' };
+    req.session.flash = { type: 'ok', text: '¡Google conectado! (Calendar y Drive). Probá subir un archivo para confirmar Drive.' };
     res.redirect('/calendar');
   } catch (err) {
     next(err);

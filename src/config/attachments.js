@@ -31,6 +31,7 @@ async function saveAttachments(ownerType, ownerId, files, uploaderId, folderPath
   const segments = Array.isArray(folderPath) && folderPath.length ? folderPath : ['Otros'];
   let uploaded = 0;
   let failed = 0;
+  let errorMessage = null;
   for (const f of files) {
     try {
       const driveId = await gdrive.uploadToDrive(admin, f, segments);
@@ -42,10 +43,11 @@ async function saveAttachments(ownerType, ownerId, files, uploaderId, folderPath
       uploaded += 1;
     } catch (err) {
       console.error('No se pudo subir a Drive:', err.message);
+      if (!errorMessage) errorMessage = err.message;
       failed += 1;
     }
   }
-  return { uploaded, failed, noConnection: false };
+  return { uploaded, failed, noConnection: false, errorMessage };
 }
 
 // Arma el mensaje según cómo salió la subida de adjuntos.
@@ -54,7 +56,8 @@ function attachmentFlash(baseOkText, result) {
     return { type: 'error', text: `${baseOkText} Los archivos no se guardaron: conectá tu Google en el Buzón/Calendario.` };
   }
   if (result.failed > 0) {
-    return { type: 'error', text: `${baseOkText} Algunos archivos no se pudieron subir a Drive.` };
+    const reason = result.errorMessage ? ` Motivo: ${result.errorMessage}` : '';
+    return { type: 'error', text: `${baseOkText} Algunos archivos no se pudieron subir a Drive.${reason}` };
   }
   return { type: 'ok', text: baseOkText };
 }

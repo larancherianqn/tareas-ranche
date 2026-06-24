@@ -69,6 +69,7 @@ app.use((req, res, next) => {
   delete req.session.flash;
   res.locals.h = helpers; // helpers de formato/etiquetas
   res.locals.path = req.path;
+  res.locals.appVersion = 'v8 · legajos + permisos';
   next();
 });
 

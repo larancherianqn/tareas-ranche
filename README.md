@@ -119,3 +119,8 @@ npm run dev               # arranca en http://localhost:3000
 ## Pendiente para próximas etapas
 
 - Objetivos con premios (objetivos puntuales definidos por el administrador).
+
+## Notificaciones de avisos
+
+- **Dentro de la app:** cuando hay un aviso nuevo sin leer, aparece un puntito rojo con el número en "Buzón". Se apaga cuando la persona entra al Buzón.
+- **Por mail (opcional):** al publicar un aviso, se envía un mail a los destinatarios (a todo el equipo o al empleado elegido). Para activarlo, configurá en Render las variables `MAIL_USER`, `MAIL_PASS` y `MAIL_FROM`. `MAIL_PASS` es una **contraseña de aplicación** de Gmail (Cuenta de Google → Seguridad → Verificación en 2 pasos → Contraseñas de aplicaciones), no la contraseña normal. Si no se configuran, el aviso se publica igual pero sin mail.

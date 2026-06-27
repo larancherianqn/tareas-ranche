@@ -63,13 +63,27 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Variables disponibles en todas las vistas.
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.locals.currentUser = req.user || null;
   res.locals.flash = req.session.flash || null;
   delete req.session.flash;
   res.locals.h = helpers; // helpers de formato/etiquetas
   res.locals.path = req.path;
-  res.locals.appVersion = 'v10 · tareas urgentes';
+  res.locals.appVersion = 'v11 · notificaciones de avisos';
+  res.locals.unreadAvisos = 0;
+  if (req.user) {
+    try {
+      const { rows } = await db.query(
+        `SELECT COUNT(*)::int AS n FROM announcements
+          WHERE created_by <> $1
+            AND ($2::timestamptz IS NULL OR created_at > $2)`,
+        [req.user.id, req.user.buzon_seen_at || null]
+      );
+      res.locals.unreadAvisos = rows[0] ? rows[0].n : 0;
+    } catch (e) {
+      res.locals.unreadAvisos = 0;
+    }
+  }
   next();
 });
 

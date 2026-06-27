@@ -20,7 +20,7 @@
     <nav class="nav">
       <a href="/" class="<%= path === '/' ? 'is-active' : '' %>">Tareas</a>
       <a href="/calendar" class="<%= (path.indexOf('/calendar') === 0 || path.indexOf('/events') === 0) ? 'is-active' : '' %>">Calendario</a>
-      <a href="/buzon" class="<%= (path.indexOf('/buzon') === 0 || path.indexOf('/avisos') === 0 || path.indexOf('/solicitudes') === 0) ? 'is-active' : '' %>">Buzón</a>
+      <a href="/buzon" class="<%= (path.indexOf('/buzon') === 0 || path.indexOf('/avisos') === 0 || path.indexOf('/solicitudes') === 0) ? 'is-active' : '' %>">Buzón<% if (typeof unreadAvisos !== 'undefined' && unreadAvisos > 0) { %><span class="nav-badge"><%= unreadAvisos %></span><% } %></a>
       <% if (currentUser.role === 'admin') { %>
         <a href="/admin/users" class="<%= path.indexOf('/admin') === 0 ? 'is-active' : '' %>">Equipo</a>
       <% } %>

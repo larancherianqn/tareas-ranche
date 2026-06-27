@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 const gdrive = require('../config/google');
+const mailer = require('../config/mailer');
 const {
   uploadFiles, saveAttachments, attachmentFlash, attachmentsFor, deleteAttachmentsFor, deleteAttachment,
 } = require('../config/attachments');
@@ -54,6 +55,9 @@ router.get('/buzon', ensureAuth, async (req, res, next) => {
       isAdmin,
       googleConnected: gdrive.hasCalendar(req.user),
     });
+
+    // Marca el buzón como visto (apaga el puntito en la próxima navegación).
+    db.query('UPDATE users SET buzon_seen_at = now() WHERE id = $1', [req.user.id]).catch(() => {});
   } catch (err) {
     next(err);
   }
@@ -87,13 +91,43 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
 
     // Carpeta de Drive: legajo del empleado, o avisos generales.
     let folderPath = ['Avisos generales', safeKind];
+    let empName = null;
     if (empId) {
-      const { rows: er } = await db.query('SELECT name FROM employees WHERE id = $1', [empId]);
-      if (er[0]) folderPath = ['Legajos', er[0].name, safeKind];
+      const { rows: er } = await db.query('SELECT name, email FROM employees WHERE id = $1', [empId]);
+      if (er[0]) { folderPath = ['Legajos', er[0].name, safeKind]; empName = er[0].name; }
     }
 
     const result = await saveAttachments('announcement', rows[0].id, req.files, req.user.id, folderPath);
-    req.session.flash = attachmentFlash('Aviso publicado.', result);
+
+    // Notificación por mail a los destinatarios.
+    let recipients = [];
+    if (empId) {
+      const { rows: er } = await db.query('SELECT email FROM employees WHERE id = $1 AND email IS NOT NULL', [empId]);
+      recipients = er.map((r) => r.email);
+    } else {
+      const { rows: er } = await db.query(
+        `SELECT email FROM (
+            SELECT email FROM employees WHERE email IS NOT NULL
+            UNION
+            SELECT email FROM users WHERE email IS NOT NULL AND id <> $1
+         ) x`,
+        [req.user.id]
+      );
+      recipients = er.map((r) => r.email);
+    }
+    let mailNote = '';
+    try {
+      const baseUrl = process.env.BASE_URL || '';
+      const mailRes = await mailer.sendAvisoEmail(recipients, { title: title.trim(), body: body?.trim() || null }, baseUrl);
+      if (!mailRes.skipped && mailRes.sent > 0) mailNote = ` Se notificó por mail a ${mailRes.sent} ${mailRes.sent === 1 ? 'persona' : 'personas'}.`;
+    } catch (mailErr) {
+      console.error('No se pudo enviar el mail del aviso:', mailErr.message);
+      mailNote = ' (No se pudo enviar la notificación por mail.)';
+    }
+
+    const flash = attachmentFlash('Aviso publicado.', result);
+    flash.text = `${flash.text}${mailNote}`;
+    req.session.flash = flash;
     res.redirect(`/avisos/${rows[0].id}`);
   } catch (err) {
     next(err);

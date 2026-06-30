@@ -31,14 +31,20 @@
     </div>
 
     <div class="field">
-      <label for="target_employee_id">Para</label>
-      <select id="target_employee_id" name="target_employee_id">
-        <option value="">Todo el equipo</option>
-        <% employees.forEach(function (e) { %>
-          <option value="<%= e.id %>"><%= e.name %></option>
-        <% }) %>
-      </select>
-      <p class="muted" style="font-size:13px; margin:6px 0 0;">Si elegís un empleado, el aviso y sus archivos quedan en el legajo de esa persona en Drive.</p>
+      <label>Para</label>
+      <% if (employees.length === 0) { %>
+        <p class="muted" style="font-size:14px; margin:4px 0 0;">Va a todo el equipo. (Cargá empleados en Equipo para poder dirigir avisos a personas puntuales.)</p>
+      <% } else { %>
+        <div style="display:flex; flex-direction:column; gap:8px; border:1px solid var(--line); border-radius:12px; padding:12px;">
+          <% employees.forEach(function (e) { %>
+            <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:15px; color:var(--ink);">
+              <input type="checkbox" name="target_employees" value="<%= e.id %>" />
+              <%= e.name %>
+            </label>
+          <% }) %>
+        </div>
+        <p class="muted" style="font-size:13px; margin:6px 0 0;">Marcá uno o varios. Si no marcás ninguno, el aviso va a <strong>todo el equipo</strong>. Si marcás un solo empleado, sus archivos quedan en el legajo de esa persona en Drive.</p>
+      <% } %>
     </div>
 
     <div class="field">

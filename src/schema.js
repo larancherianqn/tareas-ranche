@@ -177,4 +177,11 @@ ALTER TABLE announcements ADD COLUMN IF NOT EXISTS target_employee_id INTEGER RE
 ALTER TABLE requests ADD COLUMN IF NOT EXISTS employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS urgent BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS buzon_seen_at TIMESTAMPTZ;
+
+-- Destinatarios de un aviso (varios empleados por aviso).
+CREATE TABLE IF NOT EXISTS announcement_targets (
+  announcement_id INTEGER NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  employee_id     INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  PRIMARY KEY (announcement_id, employee_id)
+);
 `;

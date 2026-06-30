@@ -12,6 +12,12 @@ const {
 
 const router = express.Router();
 
+// Normaliza un campo de formulario que puede venir como string o array.
+function toArray(v) {
+  if (v === undefined || v === null) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 const VALID_ANN_KINDS = ANNOUNCEMENT_KINDS.map((k) => k.value);
 const VALID_REQ_KINDS = REQUEST_KINDS.map((k) => k.value);
 const VALID_REQ_STATUS = REQUEST_STATUSES.map((k) => k.value);
@@ -80,30 +86,45 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
       return res.redirect('/avisos/new');
     }
     const safeKind = (kind && kind.trim()) ? kind.trim() : 'Aviso';
-    const empId = req.body.target_employee_id && !Number.isNaN(parseInt(req.body.target_employee_id, 10))
-      ? parseInt(req.body.target_employee_id, 10) : null;
+    const empIds = toArray(req.body.target_employees)
+      .map((x) => parseInt(x, 10))
+      .filter((n) => !Number.isNaN(n));
 
     const { rows } = await db.query(
       `INSERT INTO announcements (title, body, kind, ref_date, created_by, target_employee_id)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [title.trim(), body?.trim() || null, safeKind, ref_date || null, req.user.id, empId]
+      [title.trim(), body?.trim() || null, safeKind, ref_date || null, req.user.id, empIds.length === 1 ? empIds[0] : null]
     );
+    const announcementId = rows[0].id;
 
-    // Carpeta de Drive: legajo del empleado, o avisos generales.
-    let folderPath = ['Avisos generales', safeKind];
-    let empName = null;
-    if (empId) {
-      const { rows: er } = await db.query('SELECT name, email FROM employees WHERE id = $1', [empId]);
-      if (er[0]) { folderPath = ['Legajos', er[0].name, safeKind]; empName = er[0].name; }
+    // Empleados destinatarios (si no se eligió ninguno, es para todo el equipo).
+    let targetEmployees = [];
+    if (empIds.length > 0) {
+      const { rows: emps } = await db.query(
+        'SELECT id, name, email FROM employees WHERE id = ANY($1::int[])',
+        [empIds]
+      );
+      targetEmployees = emps;
+      for (const e of emps) {
+        await db.query(
+          'INSERT INTO announcement_targets (announcement_id, employee_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [announcementId, e.id]
+        );
+      }
     }
 
-    const result = await saveAttachments('announcement', rows[0].id, req.files, req.user.id, folderPath);
+    // Carpeta de Drive: si es un solo empleado va a su legajo; si son varios o todos, a avisos generales.
+    let folderPath = ['Avisos generales', safeKind];
+    if (targetEmployees.length === 1) {
+      folderPath = ['Legajos', targetEmployees[0].name, safeKind];
+    }
 
-    // Notificación por mail a los destinatarios.
+    const result = await saveAttachments('announcement', announcementId, req.files, req.user.id, folderPath);
+
+    // Destinatarios del mail.
     let recipients = [];
-    if (empId) {
-      const { rows: er } = await db.query('SELECT email FROM employees WHERE id = $1 AND email IS NOT NULL', [empId]);
-      recipients = er.map((r) => r.email);
+    if (targetEmployees.length > 0) {
+      recipients = targetEmployees.map((e) => e.email).filter(Boolean);
     } else {
       const { rows: er } = await db.query(
         `SELECT email FROM (
@@ -128,7 +149,7 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
     const flash = attachmentFlash('Aviso publicado.', result);
     flash.text = `${flash.text}${mailNote}`;
     req.session.flash = flash;
-    res.redirect(`/avisos/${rows[0].id}`);
+    res.redirect(`/avisos/${announcementId}`);
   } catch (err) {
     next(err);
   }
@@ -137,10 +158,13 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
 router.get('/avisos/:id', ensureAuth, async (req, res, next) => {
   try {
     const { rows } = await db.query(
-      `SELECT a.*, u.name AS creator_name, e.name AS target_name
+      `SELECT a.*, u.name AS creator_name,
+              (SELECT string_agg(emp.name, ', ' ORDER BY emp.name)
+                 FROM announcement_targets atg
+                 JOIN employees emp ON emp.id = atg.employee_id
+                WHERE atg.announcement_id = a.id) AS target_names
          FROM announcements a
          LEFT JOIN users u ON u.id = a.created_by
-         LEFT JOIN employees e ON e.id = a.target_employee_id
         WHERE a.id = $1`,
       [req.params.id]
     );

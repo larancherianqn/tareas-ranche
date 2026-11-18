@@ -40,21 +40,18 @@
         <input type="date" id="event_date" name="event_date" required value="<%= defaultDate %>" />
       </div>
       <div class="field">
-        <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-family:var(--font-body); font-size:15px; color:var(--ink); margin-top:22px;">
-          <input type="checkbox" id="all_day" name="all_day" <%= (editing && event.all_day) ? 'checked' : '' %> onchange="document.getElementById('time-row').style.display = this.checked ? 'none' : 'grid';" />
-          Dura todo el día
-        </label>
+        <p class="muted" style="margin-top:22px; font-size:14px;">Los eventos se agendan a partir de las 19:00 hs.</p>
       </div>
     </div>
 
-    <div class="row-2" id="time-row" style="<%= (editing && event.all_day) ? 'display:none;' : '' %>">
+    <div class="row-2" id="time-row">
       <div class="field">
-        <label for="start_time">Hora de inicio</label>
-        <input type="time" id="start_time" name="start_time" value="<%= editing && event.start_time ? event.start_time : '09:00' %>" />
+        <label for="start_time">Hora de inicio (desde 19:00)</label>
+        <input type="time" id="start_time" name="start_time" min="19:00" max="23:59" required value="<%= editing && event.start_time && String(event.start_time).slice(0,5) >= '19:00' ? event.start_time : '19:00' %>" />
       </div>
       <div class="field">
         <label for="end_time">Hora de fin</label>
-        <input type="time" id="end_time" name="end_time" value="<%= editing && event.end_time ? event.end_time : '10:00' %>" />
+        <input type="time" id="end_time" name="end_time" value="<%= editing && event.end_time ? event.end_time : '20:00' %>" />
       </div>
     </div>
 

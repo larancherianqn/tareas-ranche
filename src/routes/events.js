@@ -119,17 +119,29 @@ router.get('/events/new', ensureAuth, async (req, res, next) => {
   }
 });
 
+// Los eventos solo pueden empezar a partir de las 19:00 hs.
+const MIN_EVENT_START = '19:00';
+function isEveningTime(t) {
+  if (!t || !/^\d{2}:\d{2}/.test(t)) return false;
+  return t.slice(0, 5) >= MIN_EVENT_START;
+}
+
 // ---------- Crear evento ----------
 router.post('/events', ensureAuth, async (req, res, next) => {
   const client = await db.pool.connect();
   try {
     const { title, description, location, event_date, start_time, end_time } = req.body;
-    const allDay = req.body.all_day === 'on';
+    const allDay = false; // Los eventos son siempre con horario (desde las 19:00)
     const allTeam = req.body.all_team === 'on';
     const attendeeIds = toArray(req.body.attendees).map((x) => parseInt(x, 10)).filter(Boolean);
 
     if (!title || !title.trim() || !event_date) {
       req.session.flash = { type: 'error', text: 'El evento necesita título y fecha.' };
+      return res.redirect('/events/new');
+    }
+
+    if (!isEveningTime(start_time)) {
+      req.session.flash = { type: 'error', text: 'Los eventos solo se pueden agendar a partir de las 19:00 hs.' };
       return res.redirect('/events/new');
     }
 
@@ -238,12 +250,17 @@ router.put('/events/:id', ensureAuth, ensureAdmin, async (req, res, next) => {
   const client = await db.pool.connect();
   try {
     const { title, description, location, event_date, start_time, end_time } = req.body;
-    const allDay = req.body.all_day === 'on';
+    const allDay = false; // Los eventos son siempre con horario (desde las 19:00)
     const allTeam = req.body.all_team === 'on';
     const attendeeIds = toArray(req.body.attendees).map((x) => parseInt(x, 10)).filter(Boolean);
 
     if (!title || !title.trim() || !event_date) {
       req.session.flash = { type: 'error', text: 'El evento necesita título y fecha.' };
+      return res.redirect(`/events/${req.params.id}/edit`);
+    }
+
+    if (!isEveningTime(start_time)) {
+      req.session.flash = { type: 'error', text: 'Los eventos solo se pueden agendar a partir de las 19:00 hs.' };
       return res.redirect(`/events/${req.params.id}/edit`);
     }
 

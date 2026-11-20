@@ -104,7 +104,7 @@ router.get('/calendar', ensureAuth, async (req, res, next) => {
 router.get('/events/new', ensureAuth, async (req, res, next) => {
   try {
     const { rows: users } = await db.query(
-      `SELECT id, name, email FROM users WHERE role <> 'admin' OR id <> $1 ORDER BY name ASC`,
+      `SELECT id, name, email FROM users WHERE (role <> 'admin' OR id <> $1) AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails)) ORDER BY name ASC`,
       [req.user.id]
     );
     const adminG = await gcal.getAdminWithDrive();
@@ -166,10 +166,10 @@ router.post('/events', ensureAuth, async (req, res, next) => {
     // Si "todo el equipo" está marcado, invita a todos los que ya ingresaron.
     let attRows = [];
     if (allTeam) {
-      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL`));
+      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails))`));
     } else if (attendeeIds.length > 0) {
       ({ rows: attRows } = await client.query(
-        `SELECT id, email FROM users WHERE id = ANY($1::int[])`,
+        `SELECT id, email FROM users WHERE id = ANY($1::int[]) AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails))`,
         [attendeeIds]
       ));
     }
@@ -225,7 +225,7 @@ router.get('/events/:id/edit', ensureAuth, ensureAdmin, async (req, res, next) =
       return res.render('error', { title: 'No encontrado', message: 'Ese evento no existe.' });
     }
     const { rows: users } = await db.query(
-      `SELECT id, name, email FROM users WHERE role <> 'admin' OR id <> $1 ORDER BY name ASC`,
+      `SELECT id, name, email FROM users WHERE (role <> 'admin' OR id <> $1) AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails)) ORDER BY name ASC`,
       [req.user.id]
     );
     const { rows: att } = await db.query(
@@ -292,10 +292,10 @@ router.put('/events/:id', ensureAuth, ensureAdmin, async (req, res, next) => {
     await client.query('DELETE FROM event_attendees WHERE event_id = $1', [event.id]);
     let attRows = [];
     if (allTeam) {
-      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL`));
+      ({ rows: attRows } = await client.query(`SELECT id, email FROM users WHERE email IS NOT NULL AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails))`));
     } else if (attendeeIds.length > 0) {
       ({ rows: attRows } = await client.query(
-        `SELECT id, email FROM users WHERE id = ANY($1::int[])`,
+        `SELECT id, email FROM users WHERE id = ANY($1::int[]) AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails))`,
         [attendeeIds]
       ));
     }

@@ -130,7 +130,7 @@ router.post('/avisos', ensureAuth, ensureAdmin, uploadFiles, async (req, res, ne
         `SELECT email FROM (
             SELECT email FROM employees WHERE email IS NOT NULL
             UNION
-            SELECT email FROM users WHERE email IS NOT NULL AND id <> $1
+            SELECT email FROM users WHERE email IS NOT NULL AND id <> $1 AND (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails))
          ) x`,
         [req.user.id]
       );

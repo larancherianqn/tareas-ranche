@@ -69,7 +69,7 @@ app.use(async (req, res, next) => {
   delete req.session.flash;
   res.locals.h = helpers; // helpers de formato/etiquetas
   res.locals.path = req.path;
-  res.locals.appVersion = 'v12 · eventos desde las 19 hs';
+  res.locals.appVersion = 'v13 · solo equipo activo';
   res.locals.unreadAvisos = 0;
   if (req.user) {
     try {

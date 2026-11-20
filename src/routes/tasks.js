@@ -106,7 +106,7 @@ router.get('/', async (req, res, next) => {
 router.get('/tasks/new', ensureAuth, async (req, res, next) => {
   try {
     const { rows: users } = await db.query(
-      `SELECT id, name, email FROM users ORDER BY name ASC`
+      `SELECT id, name, email FROM users WHERE (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails)) ORDER BY name ASC`
     );
     const { rows: sectors } = await db.query('SELECT id, name FROM sectors ORDER BY name');
     res.render('task_form', { title: 'Nueva tarea', task: null, users, sectors, files: [] });
@@ -263,7 +263,7 @@ router.get('/tasks/:id/edit', ensureAdmin, async (req, res, next) => {
       return res.render('error', { title: 'No encontrada', message: 'Esa tarea no existe.' });
     }
     const { rows: users } = await db.query(
-      `SELECT id, name, email FROM users ORDER BY name ASC`
+      `SELECT id, name, email FROM users WHERE (role = 'admin' OR lower(email) IN (SELECT lower(email) FROM authorized_emails)) ORDER BY name ASC`
     );
     const { rows: sectors } = await db.query('SELECT id, name FROM sectors ORDER BY name');
     const files = await attachmentsFor('task', task.id);
